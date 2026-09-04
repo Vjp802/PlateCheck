@@ -1,0 +1,172 @@
+<html>
+<head>
+<title>MainViewModel.kt</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #0033b3;}
+.s1 { color: #080808;}
+.s2 { color: #067d17;}
+.s3 { color: #1750eb;}
+.s4 { color: #0037a6;}
+.s5 { color: #8c8c8c; font-style: italic;}
+</style>
+</head>
+<body bgcolor="#ffffff">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#c0c0c0" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+MainViewModel.kt</font>
+</center></td></tr></table>
+<pre><span class="s0">package </span><span class="s1">com.platecheck.app</span>
+
+<span class="s1">import android.graphics.Bitmap</span>
+<span class="s1">import android.os.Build</span>
+<span class="s1">import androidx.lifecycle.ViewModel</span>
+<span class="s1">import androidx.lifecycle.viewModelScope</span>
+<span class="s1">import com.google.mlkit.genai.common.FeatureStatus</span>
+<span class="s1">import com.platecheck.app.model.AnalysisResult</span>
+<span class="s1">import com.platecheck.app.model.HistoryItem</span>
+<span class="s1">import com.platecheck.app.model.UiState</span>
+<span class="s1">import com.platecheck.app.model.Verdict</span>
+<span class="s1">import com.platecheck.app.service.NanoService</span>
+<span class="s1">import kotlinx.coroutines.delay</span>
+<span class="s1">import kotlinx.coroutines.flow.MutableStateFlow</span>
+<span class="s1">import kotlinx.coroutines.flow.StateFlow</span>
+<span class="s1">import kotlinx.coroutines.flow.asStateFlow</span>
+<span class="s1">import kotlinx.coroutines.launch</span>
+<span class="s1">import kotlin.random.Random</span>
+<span class="s1">import kotlin.time.Duration.Companion.seconds</span>
+
+<span class="s0">class </span><span class="s1">MainViewModel : ViewModel() {</span>
+
+    <span class="s1">private </span><span class="s0">val </span><span class="s1">nanoService = NanoService()</span>
+
+    <span class="s1">private </span><span class="s0">val </span><span class="s1">_uiState = MutableStateFlow&lt;UiState&gt;(UiState.Setup())</span>
+    <span class="s0">val </span><span class="s1">uiState: StateFlow&lt;UiState&gt; = _uiState.asStateFlow()</span>
+
+    <span class="s1">private </span><span class="s0">val </span><span class="s1">history = mutableListOf&lt;HistoryItem&gt;()</span>
+
+    <span class="s1">private </span><span class="s0">val </span><span class="s1">isEmulator = Build.PRODUCT.contains(</span><span class="s2">&quot;sdk&quot;</span><span class="s1">) || </span>
+                           <span class="s1">Build.MODEL.contains(</span><span class="s2">&quot;Emulator&quot;</span><span class="s1">) || </span>
+                           <span class="s1">Build.FINGERPRINT.contains(</span><span class="s2">&quot;generic&quot;</span><span class="s1">)</span>
+
+    <span class="s1">init {</span>
+        <span class="s1">checkModelAvailability()</span>
+    <span class="s1">}</span>
+
+    <span class="s1">private </span><span class="s0">fun </span><span class="s1">checkModelAvailability() {</span>
+        <span class="s1">viewModelScope.launch {</span>
+            <span class="s0">if </span><span class="s1">(isEmulator) {</span>
+                <span class="s1">_uiState.value = UiState.Setup(</span><span class="s2">&quot;Emulator detected: Enabling Mock AI Mode...&quot;</span><span class="s1">)</span>
+                <span class="s1">delay(</span><span class="s3">1</span><span class="s1">.seconds)</span>
+                <span class="s1">_uiState.value = UiState.Idle</span>
+                <span class="s0">return</span><span class="s1">@launch</span>
+            <span class="s1">}</span>
+
+            <span class="s0">try </span><span class="s1">{</span>
+                <span class="s0">when </span><span class="s1">(nanoService.checkStatus()) {</span>
+                    <span class="s1">FeatureStatus.AVAILABLE -&gt; {</span>
+                        <span class="s1">_uiState.value = UiState.Idle</span>
+                    <span class="s1">}</span>
+                    <span class="s1">FeatureStatus.DOWNLOADABLE -&gt; {</span>
+                        <span class="s1">_uiState.value = UiState.Setup(</span><span class="s2">&quot;Downloading on-device AI model...&quot;</span><span class="s1">)</span>
+                        <span class="s0">try </span><span class="s1">{</span>
+                            <span class="s1">nanoService.downloadModel()</span>
+                            <span class="s1">_uiState.value = UiState.Idle</span>
+                        <span class="s1">} catch (e: Exception) {</span>
+                            <span class="s1">_uiState.value = UiState.Unavailable(</span>
+                                <span class="s2">&quot;Failed to download AI model: </span><span class="s4">${</span><span class="s1">e.localizedMessage</span><span class="s4">}</span><span class="s2">&quot;</span><span class="s1">,</span>
+                            <span class="s1">)</span>
+                        <span class="s1">}</span>
+                    <span class="s1">}</span>
+                    <span class="s1">FeatureStatus.DOWNLOADING -&gt; {</span>
+                        <span class="s1">_uiState.value = UiState.Setup(</span><span class="s2">&quot;AI model is downloading...&quot;</span><span class="s1">)</span>
+                        <span class="s5">// Poll periodically instead of immediate recursion to avoid stack issues or rapid looping</span>
+                        <span class="s1">delay(</span><span class="s3">5</span><span class="s1">.seconds)</span>
+                        <span class="s1">checkModelAvailability()</span>
+                    <span class="s1">}</span>
+                    <span class="s0">else </span><span class="s1">-&gt; {</span>
+                        <span class="s1">_uiState.value = UiState.Unavailable(</span>
+                            <span class="s2">&quot;On-device AI is not available on this device.&quot;</span><span class="s1">,</span>
+                        <span class="s1">)</span>
+                    <span class="s1">}</span>
+                <span class="s1">}</span>
+            <span class="s1">} catch (e: Exception) {</span>
+                <span class="s1">_uiState.value = UiState.Unavailable(</span>
+                    <span class="s2">&quot;Error checking AI availability: </span><span class="s4">${</span><span class="s1">e.localizedMessage</span><span class="s4">}</span><span class="s2">&quot;</span><span class="s1">,</span>
+                <span class="s1">)</span>
+            <span class="s1">}</span>
+        <span class="s1">}</span>
+    <span class="s1">}</span>
+
+    <span class="s0">fun </span><span class="s1">onPhotoCaptured(bitmap: Bitmap) {</span>
+        <span class="s1">_uiState.value = UiState.Analyzing(bitmap)</span>
+        <span class="s1">viewModelScope.launch {</span>
+            <span class="s0">try </span><span class="s1">{</span>
+                <span class="s0">val </span><span class="s1">result = </span><span class="s0">if </span><span class="s1">(isEmulator) {</span>
+                    <span class="s1">mockAnalysis()</span>
+                <span class="s1">} </span><span class="s0">else </span><span class="s1">{</span>
+                    <span class="s1">nanoService.analyzeFood(bitmap)</span>
+                <span class="s1">}</span>
+                
+                <span class="s5">// Add to history</span>
+                <span class="s1">history.add(</span><span class="s3">0</span><span class="s1">, HistoryItem(photo = bitmap, result = result))</span>
+                
+                <span class="s1">_uiState.value = UiState.Result(photo = bitmap, result = result)</span>
+            <span class="s1">} catch (e: Exception) {</span>
+                <span class="s1">_uiState.value = UiState.Error(</span>
+                    <span class="s1">photo = bitmap,</span>
+                    <span class="s1">message = </span><span class="s2">&quot;Analysis failed: </span><span class="s4">${</span><span class="s1">e.localizedMessage</span><span class="s4">}</span><span class="s2">&quot;</span><span class="s1">,</span>
+                    <span class="s1">rawResponse = e.message,</span>
+                <span class="s1">)</span>
+            <span class="s1">}</span>
+        <span class="s1">}</span>
+    <span class="s1">}</span>
+
+    <span class="s1">private suspend </span><span class="s0">fun </span><span class="s1">mockAnalysis(): AnalysisResult {</span>
+        <span class="s1">delay(</span><span class="s3">6</span><span class="s1">.seconds)</span>
+        <span class="s0">return when </span><span class="s1">(Random.nextInt(</span><span class="s3">3</span><span class="s1">)) {</span>
+            <span class="s3">0 </span><span class="s1">-&gt; AnalysisResult(</span>
+                <span class="s1">verdict = Verdict.GOOD,</span>
+                <span class="s1">reason = </span><span class="s2">&quot;Mock: This meal has a perfect balance of grilled salmon, quinoa, and steamed broccoli.&quot;</span><span class="s1">,</span>
+                <span class="s1">suggestion = </span><span class="s2">&quot;NONE&quot;</span><span class="s1">,</span>
+                <span class="s1">rawResponse = </span><span class="s2">&quot;VERDICT: GOOD</span><span class="s4">\n</span><span class="s2">REASON: Balanced salmon meal.</span><span class="s4">\n</span><span class="s2">SUGGESTION: NONE&quot;</span><span class="s1">,</span>
+            <span class="s1">)</span>
+            <span class="s3">1 </span><span class="s1">-&gt; AnalysisResult(</span>
+                <span class="s1">verdict = Verdict.MODIFY,</span>
+                <span class="s1">reason = </span><span class="s2">&quot;Mock: The pasta dish looks delicious but seems to be lacking a significant source of fiber or vegetables.&quot;</span><span class="s1">,</span>
+                <span class="s1">suggestion = </span><span class="s2">&quot;Mock: Try adding a side salad or mixing in some sautéed spinach to increase the nutrient density.&quot;</span><span class="s1">,</span>
+                <span class="s1">rawResponse = </span><span class="s2">&quot;VERDICT: MODIFY</span><span class="s4">\n</span><span class="s2">REASON: Needs more fiber.</span><span class="s4">\n</span><span class="s2">SUGGESTION: Add spinach.&quot;</span><span class="s1">,</span>
+            <span class="s1">)</span>
+            <span class="s0">else </span><span class="s1">-&gt; AnalysisResult(</span>
+                <span class="s1">verdict = Verdict.NOT_RECOMMENDED,</span>
+                <span class="s1">reason = </span><span class="s2">&quot;Mock: This meal consists primarily of deep-fried items and lacks fresh produce or complex carbohydrates.&quot;</span><span class="s1">,</span>
+                <span class="s1">suggestion = </span><span class="s2">&quot;NONE&quot;</span><span class="s1">,</span>
+                <span class="s1">rawResponse = </span><span class="s2">&quot;VERDICT: NOT_RECOMMENDED</span><span class="s4">\n</span><span class="s2">REASON: Mostly fried food.</span><span class="s4">\n</span><span class="s2">SUGGESTION: NONE&quot;</span><span class="s1">,</span>
+            <span class="s1">)</span>
+        <span class="s1">}</span>
+    <span class="s1">}</span>
+
+    <span class="s0">fun </span><span class="s1">toggleDetails() {</span>
+        <span class="s1">(_uiState.value </span><span class="s0">as? </span><span class="s1">UiState.Result)?.let { current -&gt;</span>
+            <span class="s1">_uiState.value = current.copy(showDetails = !current.showDetails)</span>
+        <span class="s1">}</span>
+    <span class="s1">}</span>
+
+    <span class="s0">fun </span><span class="s1">navigateToHistory() {</span>
+        <span class="s1">_uiState.value = UiState.History(history.toList())</span>
+    <span class="s1">}</span>
+
+    <span class="s0">fun </span><span class="s1">resetToIdle() {</span>
+        <span class="s1">_uiState.value = UiState.Idle</span>
+    <span class="s1">}</span>
+
+    <span class="s0">fun </span><span class="s1">retryFromError() {</span>
+        <span class="s1">(_uiState.value </span><span class="s0">as? </span><span class="s1">UiState.Error)?.let { current -&gt;</span>
+            <span class="s1">onPhotoCaptured(current.photo)</span>
+        <span class="s1">}</span>
+    <span class="s1">}</span>
+<span class="s1">}</span>
+</pre>
+</body>
+</html>

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="ic_launcher_background">#E8F5E9</color>
+    <string name="app_name">PlateCheck</string>
+    <style name="Theme.PlateCheck" parent="android:Theme.Material.Light.NoActionBar"/>
+</resources>

@@ -1,0 +1,20 @@
+<lint-module
+    format="1"
+    dir="/Users/peta0006/Documents/PlateCheck/app"
+    name=":app"
+    type="APP"
+    maven="PlateCheck:app:unspecified"
+    agpVersion="9.2.1"
+    buildFolder="build"
+    bootClassPath="/Users/peta0006/Library/Android/sdk/platforms/android-35/android.jar:/Users/peta0006/Library/Android/sdk/build-tools/36.0.0/core-lambda-stubs.jar"
+    javaSourceLevel="11"
+    compileTarget="android-35"
+    neverShrinking="true"
+    highlightGradualR8Api="false">
+  <lintOptions
+      abortOnError="true"
+      absolutePaths="true"
+      checkReleaseBuilds="true"
+      explainIssues="true"/>
+  <variant name="debug"/>
+</lint-module>

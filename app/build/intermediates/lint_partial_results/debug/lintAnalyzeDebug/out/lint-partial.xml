@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<incidents format="6" by="lint 9.2.1" type="partial_results">
+    <map id="UnsafeImplicitIntentLaunch">
+            <map id="actionsSent">
+                    <map id="android.settings.APPLICATION_DETAILS_SETTINGS (used to start an activity)">
+                        <location id="0"
+                            file="${:app*debug*MAIN*sourceProvider*0*javaDir*0}/com/platecheck/app/MainActivity.kt"
+                            line="113"
+                            column="30"
+                            startOffset="4146"
+                            endLine="113"
+                            endColumn="82"
+                            endOffset="4198"/>
+                    </map>
+            </map>
+    </map>
+    <map id="UnsafeIntentLaunch">
+            <map id="unprotected">
+                <entry
+                    name="com.platecheck.app.MainActivity"
+                    boolean="true"/>
+            </map>
+    </map>
+    <map id="UnusedResources">
+        <entry
+            name="model"
+            string="color[ic_launcher_background(U)],drawable[ic_launcher_foreground(U)],mipmap[ic_launcher(U)],string[app_name(U)],style[Theme_PlateCheck(U)];2^0^1;;;"/>
+    </map>
+
+</incidents>

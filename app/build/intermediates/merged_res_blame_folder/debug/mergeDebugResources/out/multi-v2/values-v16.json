@@ -1,0 +1,20 @@
+{
+    "logs": [
+        {
+            "outputFile": "com.platecheck.app-mergeDebugResources-65:/values-v16/values-v16.xml",
+            "map": [
+                {
+                    "source": "/Users/peta0006/.gradle/caches/9.5.0/transforms/bc57bc4dc109b335d78e5c282b7e2d19/transformed/appcompat-1.6.1/res/values-v16/values-v16.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endLines": "5",
+                        "endColumns": "12",
+                        "endOffsets": "223"
+                    }
+                }
+            ]
+        }
+    ]
+}
