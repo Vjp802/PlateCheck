@@ -50,7 +50,11 @@ sealed class UiState {
     data class History(val items: List<HistoryItem>) : UiState()
 
     /** Photo has been taken, waiting for on-device inference. */
-    data class Analyzing(val photo: Bitmap) : UiState()
+    data class Analyzing(
+        val photo: Bitmap,
+        /** Tells the user where the analysis is running (on-device, cloud, or mock). */
+        val statusText: String = "Analyzing on your phone"
+    ) : UiState()
 
     /** Inference complete, showing the result card. */
     data class Result(
