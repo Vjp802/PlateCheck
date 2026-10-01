@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.google.services)
 }
 
 android {
@@ -18,6 +19,10 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Use cloud Gemini (Firebase AI Logic) on phones that can't run Gemini Nano.
+        // Set to false to keep all analysis on-device; unsupported phones then see "not supported".
+        buildConfigField("boolean", "CLOUD_FALLBACK_ENABLED", "true")
     }
 
     buildTypes {
@@ -38,6 +43,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -69,6 +75,14 @@ dependencies {
     // ML Kit GenAI (on-device Gemini Nano)
     implementation(libs.mlkit.genai.prompt)
     implementation(libs.kotlinx.coroutines.play.services)
+
+    // Firebase AI Logic (cloud Gemini fallback)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.ai)
+
+    // Firebase App Check: Play Integrity for real builds, debug provider for debug builds only
+    implementation(libs.firebase.appcheck.playintegrity)
+    debugImplementation(libs.firebase.appcheck.debug)
 
     // Room
     implementation(libs.androidx.room.runtime)

@@ -1,5 +1,6 @@
 package com.platecheck.app
 
+import android.Manifest
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -20,6 +21,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -55,8 +59,9 @@ class MainActivity : ComponentActivity() {
 private fun PlateCheckApp(
     viewModel: MainViewModel = viewModel()
 ) {
-    val cameraPermissionState = rememberPermissionState(android.Manifest.permission.CAMERA)
+    val cameraPermissionState = rememberPermissionState(Manifest.permission.CAMERA)
     val uiState by viewModel.uiState.collectAsState()
+    var hasRequestedPermission by rememberSaveable { mutableStateOf(false) }
 
     if (cameraPermissionState.status.isGranted) {
         MainScreen(
@@ -70,7 +75,11 @@ private fun PlateCheckApp(
     } else {
         CameraPermissionRequest(
             shouldShowRationale = cameraPermissionState.status.shouldShowRationale,
-            onRequestPermission = { cameraPermissionState.launchPermissionRequest() }
+            hasRequestedBefore = hasRequestedPermission,
+            onRequestPermission = {
+                hasRequestedPermission = true
+                cameraPermissionState.launchPermissionRequest()
+            }
         )
     }
 }
@@ -78,9 +87,11 @@ private fun PlateCheckApp(
 @Composable
 private fun CameraPermissionRequest(
     shouldShowRationale: Boolean,
+    hasRequestedBefore: Boolean,
     onRequestPermission: () -> Unit
 ) {
     val context = LocalContext.current
+    val showSettingsButton = shouldShowRationale || hasRequestedBefore
 
     Column(
         modifier = Modifier
@@ -96,9 +107,9 @@ private fun CameraPermissionRequest(
         )
         Spacer(modifier = Modifier.height(24.dp))
         Text(
-            text = if (shouldShowRationale) {
+            text = if (showSettingsButton) {
                 "PlateCheck needs camera access to photograph your meals for on-device AI analysis. " +
-                "No photos are uploaded — everything stays on your phone."
+                "Please grant permission in App Settings."
             } else {
                 "To get started, PlateCheck needs access to your camera to take photos of your meals."
             },
@@ -107,14 +118,15 @@ private fun CameraPermissionRequest(
         )
         Spacer(modifier = Modifier.height(24.dp))
 
-        if (shouldShowRationale) {
-            // Permission was denied before — need to go to settings
-            Button(onClick = {
-                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                    data = Uri.fromParts("package", context.packageName, null)
+        if (showSettingsButton) {
+            Button(
+                onClick = {
+                    val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                        data = Uri.fromParts("package", context.packageName, null)
+                    }
+                    context.startActivity(intent)
                 }
-                context.startActivity(intent)
-            }) {
+            ) {
                 Text("Open Settings")
             }
         } else {

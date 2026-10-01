@@ -1,5 +1,5 @@
 [versions]
-agp = "9.4.0"
+agp = "9.4.1"
 kotlin = "2.2.10"
 coreKtx = "1.15.0"
 lifecycleRuntimeKtx = "2.8.7"
@@ -7,12 +7,14 @@ activityCompose = "1.9.3"
 composeBom = "2024.12.01"
 camerax = "1.4.1"
 accompanistPermissions = "0.36.0"
-mlkitGenaiPrompt = "1.0.0-beta2"
+mlkitGenaiPrompt = "1.0.0-beta4"
 kotlinxCoroutines = "1.9.0"
-room = "2.6.1"
+room = "2.8.5"
 kotlinxSerializationJson = "1.7.3"
-ksp = "2.3.6"
+ksp = "2.3.12"
 firebaseTestLab = "0.0.1-alpha13"
+firebaseBom = "34.19.0"
+googleServices = "4.5.0"
 junit = "4.13.2"
 androidxJunit = "1.2.1"
 espressoCore = "3.6.1"
@@ -44,9 +46,15 @@ camerax-view = { group = "androidx.camera", name = "camera-view", version.ref = 
 # Accompanist
 accompanist-permissions = { group = "com.google.accompanist", name = "accompanist-permissions", version.ref = "accompanistPermissions" }
 
-# ML Kit GenAI
+# ML Kit GenAI (on-device Gemini Nano)
 mlkit-genai-prompt = { group = "com.google.mlkit", name = "genai-prompt", version.ref = "mlkitGenaiPrompt" }
 kotlinx-coroutines-play-services = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-play-services", version.ref = "kotlinxCoroutines" }
+
+# Firebase AI Logic (cloud Gemini fallback)
+firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
+firebase-ai = { group = "com.google.firebase", name = "firebase-ai" }
+firebase-appcheck-playintegrity = { group = "com.google.firebase", name = "firebase-appcheck-playintegrity" }
+firebase-appcheck-debug = { group = "com.google.firebase", name = "firebase-appcheck-debug" }
 
 # Room
 androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
@@ -63,3 +71,4 @@ kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "ko
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 firebase-testlab = { id = "com.google.firebase.testlab", version.ref = "firebaseTestLab" }
+google-services = { id = "com.google.gms.google-services", version.ref = "googleServices" }

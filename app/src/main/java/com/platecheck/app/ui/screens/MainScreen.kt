@@ -10,6 +10,7 @@ import android.os.Build
 import android.provider.MediaStore
 import android.text.format.DateFormat
 import android.util.Log
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -98,6 +99,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.platecheck.app.ui.theme.PlateCheckTheme
 import android.graphics.Canvas
 import android.graphics.Paint
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.core.graphics.createBitmap
@@ -124,6 +126,12 @@ fun MainScreen(
     onRetry: () -> Unit,
     onNavigateToHistory: () -> Unit,
 ) {
+    if (uiState !is UiState.Idle && uiState !is UiState.Setup && uiState !is UiState.Unavailable) {
+        BackHandler {
+            onReset()
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -155,8 +163,8 @@ fun MainScreen(
                 }
             }
             
-            // Back button (only in History state)
-            if (uiState is UiState.History) {
+            // Back button (shown on non-Idle/Setup screens)
+            if (uiState !is UiState.Idle && uiState !is UiState.Setup && uiState !is UiState.Unavailable) {
                 IconButton(
                     onClick = onReset,
                     modifier = Modifier
@@ -191,10 +199,21 @@ private fun SetupContent(state: UiState.Setup) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        CircularProgressIndicator(
-            modifier = Modifier.size(48.dp),
-            color = MaterialTheme.colorScheme.primary
-        )
+        if (state.progress != null) {
+            LinearProgressIndicator(
+                progress = { state.progress },
+                modifier = Modifier
+                    .fillMaxWidth(0.8f)
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(4.dp)),
+                color = MaterialTheme.colorScheme.primary
+            )
+        } else {
+            CircularProgressIndicator(
+                modifier = Modifier.size(48.dp),
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
         Spacer(modifier = Modifier.height(24.dp))
         Text(
             text = state.message,
@@ -538,7 +557,7 @@ private fun AnalyzingContent(state: UiState.Analyzing, onCancel: () -> Unit) {
                 fontWeight = FontWeight.Bold
             )
             Text(
-                text = "Gemini Nano is looking at your food",
+                text = state.statusText,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -808,21 +827,29 @@ private fun ErrorContent(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Text(
-                text = state.message,
-                style = MaterialTheme.typography.bodyLarge,
-                textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.error
-            )
-
-            state.rawResponse?.let {
-                Spacer(modifier = Modifier.height(8.dp))
+            // Long errors scroll here so the buttons below always stay on screen.
+            Column(
+                modifier = Modifier
+                    .weight(1f, fill = false)
+                    .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
                 Text(
-                    text = it,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center
+                    text = state.message,
+                    style = MaterialTheme.typography.bodyLarge,
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.error
                 )
+
+                state.rawResponse?.takeIf { it.isNotBlank() && it !in state.message }?.let {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
